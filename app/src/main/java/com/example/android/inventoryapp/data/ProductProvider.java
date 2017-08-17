@@ -245,8 +245,19 @@ public class ProductProvider extends ContentProvider {
     }
 
     private int deleteProduct(Uri uri, String selection, String[] selectionArgs) {
-        //TODO work on this
-        return 1;
+        //Get writable database
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+
+        int mRowsDeleted = db.delete(ProductEntry.TABLE_NAME, selection, selectionArgs);
+
+        //If one or more rows have been deleted then notify listeners
+        if (mRowsDeleted != 0) {
+            //Notify all listeners that the data has changed
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
+
+        //return number of rows deleted
+        return mRowsDeleted;
     }
 
     @Override

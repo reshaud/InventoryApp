@@ -11,9 +11,7 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -83,28 +81,6 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
         });
     }
 
-    private void requestPermission() {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.MANAGE_DOCUMENTS)) {
-            Toast.makeText(CatalogActivity.this, "Manage Documents permission allow us to display images. Please allow this " +
-                    "permission in App Settings.", Toast.LENGTH_SHORT).show();
-        } else {
-            ActivityCompat.requestPermissions(CatalogActivity.this, new String[]{Manifest.permission.MANAGE_DOCUMENTS}, PERMISSION_REQUEST_CODE);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case PERMISSION_REQUEST_CODE:
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Log.e(LOG_TAG, "Permission Granted for MANAGE_DOCUMENTS");
-                } else {
-                    Log.e(LOG_TAG, "Permission Denied for MANAGE_DOCUMENTS");
-                }
-                break;
-        }
-    }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         //Inflate the menu options from the res/menu/menu_catalog.xml file
@@ -122,10 +98,22 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
                 insertProducts();
                 return true;
             case R.id.action_delete_all_entries:
-                //TODO add code
+                deleteProduct();
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void deleteProduct() {
+        int mRowsDeleted;
+
+        mRowsDeleted = getContentResolver().delete(ProductEntry.CONTENT_URI, null, null);
+
+        if (mRowsDeleted > 0) {
+            Toast.makeText(this, "Products deleted", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Error deleting Products", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override

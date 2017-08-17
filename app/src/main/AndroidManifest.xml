@@ -30,6 +30,6 @@
             android:name=".data.ProductProvider"
             android:authorities="com.example.android.inventoryapp"
             android:exported="false"
-            android:grantUriPermissions="true"></provider>
+            android:grantUriPermissions="true" />
     </application>
 </manifest>

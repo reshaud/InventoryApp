@@ -11,7 +11,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -195,10 +194,33 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
                 saveProduct();
                 return true;
             case R.id.action_delete:
-                //TODO add code
+                deleteProduct();
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void deleteProduct() {
+        int mRowsDeleted;
+
+        //Delete single row
+        mRowsDeleted = getContentResolver().delete(editUri, null, null);
+
+        //Remove bitmap from imageview
+        mProductImage.setImageBitmap(null);
+
+        if (mRowsDeleted > 0) {
+            Toast.makeText(this, "Product deleted", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Error deleting Product", Toast.LENGTH_SHORT).show();
+        }
+
+        //Reset the Loader to stop cursor from trying to refresh list
+        //Since only one item will be in the cursor
+        getLoaderManager().destroyLoader(CURSOR_LOADER_ID);
+
+        //Exit Activity
+        finish();
     }
 
     //Get user input from editor and save product into the database
@@ -293,9 +315,12 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
     }
 
     public void pickImage(){
-        Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
         i.setType("image/*");
-        startActivityForResult(i,PICK_PHOTO_FOR_PRODUCT);
+        startActivityForResult(i, PICK_PHOTO_FOR_PRODUCT);
+
     }
 
     @Override
@@ -371,10 +396,9 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         Log.v(LOG_TAG, imageUri.toString());
 
         try {
-            //InputStream inputStream = EditorActivity.this.getContentResolver().openInputStream(imageUri);
-            //Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+            InputStream inputStream = EditorActivity.this.getContentResolver().openInputStream(imageUri);
+            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
 
-            Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
             mProductImage.setImageBitmap(bitmap);
         } catch (Exception e) {
             e.printStackTrace();
