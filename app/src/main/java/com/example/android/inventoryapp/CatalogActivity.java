@@ -1,19 +1,76 @@
 package com.example.android.inventoryapp;
 
+import android.Manifest;
+import android.app.LoaderManager;
+import android.content.ContentUris;
+import android.content.ContentValues;
+import android.content.CursorLoader;
 import android.content.Intent;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v7.app.AppCompatActivity;
+import android.content.Loader;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ListView;
+import android.widget.Toast;
 
-public class CatalogActivity extends AppCompatActivity {
+import com.example.android.inventoryapp.data.ProductContract.ProductEntry;
+import com.example.android.inventoryapp.data.ProductCursorAdapter;
+import com.example.android.inventoryapp.data.ProductDbHelper;
+
+public class CatalogActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
+
+    private static final int CURSOR_LOADER_ID = 0;
+    private static final String LOG_TAG = CatalogActivity.class.getSimpleName();
+    private static final int PERMISSION_REQUEST_CODE = 1;
+    private ProductCursorAdapter mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_catalog);
+
+        ProductDbHelper mDbHelper = new ProductDbHelper(this);
+
+        //Find ListView to populate
+        ListView mListView = (ListView) findViewById(R.id.list_view);
+
+        //Create an empty adapter we will use to display the loaded data
+        //We pass null for the cursor, then update it in onLoadFinished()
+        mAdapter = new ProductCursorAdapter(this, null);
+
+        //Find and set empty view on the ListView, so that it only shows when the list has 0 items
+        View emptyView = findViewById(R.id.empty_view);
+        mListView.setEmptyView(emptyView);
+
+        //Attach cursor adapter to the ListView
+        mListView.setAdapter(mAdapter);
+
+        //Setup onItemClickListener
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View itemView, int pos, long id) {
+                Uri editUri = ContentUris.withAppendedId(ProductEntry.CONTENT_URI, id);
+
+                Intent i = new Intent(CatalogActivity.this, EditorActivity.class);
+                i.setData(editUri);
+                startActivity(i);
+            }
+        });
+
+        //Prepare the loader. Either re-connect with an existing one,
+        //or start a new one
+        getLoaderManager().initLoader(CURSOR_LOADER_ID, null, this);
 
         //Setup FAB to open EditorActivity
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -24,6 +81,28 @@ public class CatalogActivity extends AppCompatActivity {
                 startActivity(i);
             }
         });
+    }
+
+    private void requestPermission() {
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.MANAGE_DOCUMENTS)) {
+            Toast.makeText(CatalogActivity.this, "Manage Documents permission allow us to display images. Please allow this " +
+                    "permission in App Settings.", Toast.LENGTH_SHORT).show();
+        } else {
+            ActivityCompat.requestPermissions(CatalogActivity.this, new String[]{Manifest.permission.MANAGE_DOCUMENTS}, PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSION_REQUEST_CODE:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.e(LOG_TAG, "Permission Granted for MANAGE_DOCUMENTS");
+                } else {
+                    Log.e(LOG_TAG, "Permission Denied for MANAGE_DOCUMENTS");
+                }
+                break;
+        }
     }
 
     @Override
@@ -40,12 +119,104 @@ public class CatalogActivity extends AppCompatActivity {
         switch (item.getItemId()){
             //Respond to various menu options
             case R.id.action_insert_dummy_data:
-                //TODO add code
+                insertProducts();
                 return true;
             case R.id.action_delete_all_entries:
                 //TODO add code
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
+        //Define a projection that specifies which columns from the database
+        //will be used for this query
+        String[] projection = {
+                ProductEntry.COLUMN_ID,
+                ProductEntry.COLUMN_NAME,
+                ProductEntry.COLUMN_QUANTITY,
+                ProductEntry.COLUMN_PRICE
+        };
+
+        //Now create and return a CursorLoader that will takecare of
+        //Creating a Cursor for the data being displayed
+        return new CursorLoader(this, ProductEntry.CONTENT_URI, projection, null, null, null);
+    }
+
+    // Called when a previously created loader has finished loading
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
+        //Swap the new cursor in.(The framework will take care of closing the
+        //old cursor once we return)
+        mAdapter.swapCursor(cursor);
+    }
+
+    // Called when a previously created loader is reset, making the data unavailable
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        //This is called when the last Cursor provided to onLoadFinished()
+        //above is about to be closed. We need to make sure we are no
+        //longer using it
+        mAdapter.swapCursor(null);
+    }
+
+    //Insert dummy data for products using content values
+    private void insertProducts() {
+        //Create a new map of values, where column names are the keys - Dummy Data 1
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(ProductEntry.COLUMN_NAME, "Re Zero Shirt");
+        contentValues.put(ProductEntry.COLUMN_DESCRIPTION, "Awesome Shirt");
+        contentValues.put(ProductEntry.COLUMN_SUPPLIER_EMAIL, "test@email.com");
+        contentValues.put(ProductEntry.COLUMN_PRICE, 4000.00);
+        contentValues.put(ProductEntry.COLUMN_SUPPLIER, "arthur shirts");
+        contentValues.put(ProductEntry.COLUMN_QUANTITY, 5);
+        contentValues.put(ProductEntry.COLUMN_IMAGE,
+                "android.resource://com.example.android.inventoryapp/drawable/rezero_shirt");
+
+        //Create a new map of values, where column names are the keys - Dummy Data 2
+        ContentValues contentValues1 = new ContentValues();
+        contentValues1.put(ProductEntry.COLUMN_NAME, "Rick & Morty Shirt");
+        contentValues1.put(ProductEntry.COLUMN_DESCRIPTION, "Shirt from Rick and Morty Tv Show");
+        contentValues1.put(ProductEntry.COLUMN_SUPPLIER_EMAIL, "test@email.com");
+        contentValues1.put(ProductEntry.COLUMN_PRICE, 6000.00);
+        contentValues1.put(ProductEntry.COLUMN_SUPPLIER, "arthur shirts");
+        contentValues1.put(ProductEntry.COLUMN_QUANTITY, 1);
+        contentValues1.put(ProductEntry.COLUMN_IMAGE,
+                "android.resource://com.example.android.inventoryapp/drawable/rick_shirt");
+
+        //Create a new map of values, where column names are the keys - Dummy Data 3
+        ContentValues contentValues2 = new ContentValues();
+        contentValues2.put(ProductEntry.COLUMN_NAME, "Stein's Gate Shirt");
+        contentValues2.put(ProductEntry.COLUMN_DESCRIPTION, "Shirt from the anime Stein's Gate");
+        contentValues2.put(ProductEntry.COLUMN_SUPPLIER_EMAIL, "test@email.com");
+        contentValues2.put(ProductEntry.COLUMN_PRICE, 4500.00);
+        contentValues2.put(ProductEntry.COLUMN_SUPPLIER, "arthur shirts");
+        contentValues2.put(ProductEntry.COLUMN_QUANTITY, 0);
+        contentValues2.put(ProductEntry.COLUMN_IMAGE,
+                "android.resource://com.example.android.inventoryapp/drawable/stein_shirt");
+
+        ContentValues[] values = new ContentValues[3];
+        values[0] = contentValues;
+        values[1] = contentValues1;
+        values[2] = contentValues2;
+
+        int mNewRows = getContentResolver().bulkInsert(ProductEntry.CONTENT_URI, values);
+
+        Log.v(LOG_TAG, "Products inserted: " + mNewRows);
+    }
+
+    private boolean checkPermission() {
+        //Check if we have permission to access users documents
+        int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.MANAGE_DOCUMENTS);
+        boolean permission = false;
+
+        if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+            permission = true;
+        } else if (permissionCheck == PackageManager.PERMISSION_DENIED) {
+            permission = false;
+        }
+
+        return permission;
     }
 }

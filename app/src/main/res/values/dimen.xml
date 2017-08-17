@@ -4,4 +4,6 @@
     <dimen name="edit_text_margin">16dp</dimen>
     <dimen name="text_view_margin">16dp</dimen>
     <dimen name="image_button_margin">16dp</dimen>
+    <dimen name="button_margin">16dp</dimen>
+    <dimen name="list_view_padding">16dp</dimen>
 </resources>

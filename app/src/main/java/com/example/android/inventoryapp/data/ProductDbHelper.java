@@ -3,9 +3,8 @@ package com.example.android.inventoryapp.data;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import com.example.android.inventoryapp.data.ProductContract.ProductEntry;
 
-import static android.R.attr.version;
+import com.example.android.inventoryapp.data.ProductContract.ProductEntry;
 
 /**
  * Created by Reshaud Ally on 8/2/2017.
@@ -26,7 +25,9 @@ public class ProductDbHelper extends SQLiteOpenHelper {
             ProductEntry.COLUMN_NAME + TYPE_TEXT + " NOT NULL" + COMMA_SEP +
             ProductEntry.COLUMN_DESCRIPTION + TYPE_TEXT + COMMA_SEP +
             ProductEntry.COLUMN_PRICE + TYPE_REAL + " NOT NULL" + COMMA_SEP +
-            ProductEntry.COLUMN_SUPPLIER + TYPE_TEXT + " NOT NULL" + ");";
+            ProductEntry.COLUMN_SUPPLIER + TYPE_TEXT + " NOT NULL" + COMMA_SEP +
+            ProductEntry.COLUMN_SUPPLIER_EMAIL + TYPE_TEXT + " NOT NULL" + COMMA_SEP +
+            ProductEntry.COLUMN_QUANTITY + TYPE_INT + " NOT NULL DEFAULT 0" + ");";
 
     private static final String SQL_DELETE_ENTRIES = "DROP TABLE IF EXISTS " + ProductEntry.TABLE_NAME;
 

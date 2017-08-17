@@ -3,5 +3,23 @@
     <string name="action_insert_dummy_data">Insert Dummy Data</string>
     <string name="action_delete_all">Delete All Data</string>
     <string name="action_save">Save</string>
-    <string name="action_delete">Delete</string>
+    <string name="action_delete">Delete Product</string>
+    <string name="hint_product_name">Product Name</string>
+    <string name="hint_description">Description (optional)</string>
+    <string name="order_quantity">Order Quantity</string>
+    <string name="quantity_available">Quantity Available</string>
+    <string name="default_quantity">0</string>
+    <string name="hint_price">Price</string>
+    <string name="hint_supplier">Supplier</string>
+    <string name="hint_supplier_email">Supplier Email</string>
+    <string name="order_product">Order Product</string>
+    <string name="sale">Sale</string>
+    <string name="current_quantity">Current Quantity : %1s</string>
+    <string name="product_price">Price : $ %.2f</string>
+    <string name="add_product">Add Product by clicking the + symbol below. : )</string>
+    <string name="add_mode">Add Product</string>
+    <string name="edit_mode">Edit Product</string>
+    <string name="insert_error">Error inserting Product</string>
+    <string name="insert_successful">Product successfully inserted</string>
+
 </resources>
