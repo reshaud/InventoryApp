@@ -242,7 +242,9 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             return;
         } else {
             String price = mPrice.getText().toString().trim();
+            //Remove currency symbol and comma before saving to database
             price = price.replace(mCurrency.getSymbol(), "");
+            price = price.replace(",", "");
             productPrice = Double.parseDouble(price);
         }
 
