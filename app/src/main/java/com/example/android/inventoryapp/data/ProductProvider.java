@@ -7,6 +7,7 @@ import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.example.android.inventoryapp.data.ProductContract.ProductEntry;
@@ -49,13 +50,13 @@ public class ProductProvider extends ContentProvider {
     //Perform the query for the given URI. Use the given projection, selection, selection arguments
     //,and sort order
     @Override
-    public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+    public Cursor query(@NonNull Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
 
         //Get readable version of database
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
 
         //This cursor will hold the result of the query
-        Cursor cursor = null;
+        Cursor cursor;
 
         int match = sUriMatcher.match(uri);
 
@@ -84,7 +85,7 @@ public class ProductProvider extends ContentProvider {
 
     //Returns the MIME type of data for the content URI
     @Override
-    public String getType(Uri uri) {
+    public String getType(@NonNull Uri uri) {
         final int match = sUriMatcher.match(uri);
         switch (match) {
             case PRODUCT:
@@ -99,9 +100,10 @@ public class ProductProvider extends ContentProvider {
 
     //Insert new data into the provider with the given ContentValues
     @Override
-    public Uri insert(Uri uri, ContentValues contentValues) {
+    public Uri insert(@NonNull Uri uri, ContentValues contentValues) {
         final int match = sUriMatcher.match(uri);
         switch (match) {
+            //Insert a product into the database
             case PRODUCT:
                 return insertProduct(uri, contentValues);
             default:
@@ -161,7 +163,7 @@ public class ProductProvider extends ContentProvider {
     }
 
     @Override
-    public int bulkInsert(Uri uri, ContentValues[] values) {
+    public int bulkInsert(@NonNull Uri uri, @NonNull ContentValues[] values) {
         final int match = sUriMatcher.match(uri);
         switch (match) {
             case PRODUCT:
@@ -176,12 +178,12 @@ public class ProductProvider extends ContentProvider {
 
         //Keep inserting until there are no more ContentValues in the array
         //Used for inserting the dummy data
-        for (int i = 0; i < values.length; i++) {
-            String productName = values[i].getAsString(ProductEntry.COLUMN_NAME);
-            String productImage = values[i].getAsString(ProductEntry.COLUMN_IMAGE);
-            double productPrice = values[i].getAsDouble(ProductEntry.COLUMN_PRICE);
-            String supplierName = values[i].getAsString(ProductEntry.COLUMN_SUPPLIER);
-            String supplierEmail = values[i].getAsString(ProductEntry.COLUMN_SUPPLIER_EMAIL);
+        for (ContentValues value : values) {
+            String productName = value.getAsString(ProductEntry.COLUMN_NAME);
+            String productImage = value.getAsString(ProductEntry.COLUMN_IMAGE);
+            double productPrice = value.getAsDouble(ProductEntry.COLUMN_PRICE);
+            String supplierName = value.getAsString(ProductEntry.COLUMN_SUPPLIER);
+            String supplierEmail = value.getAsString(ProductEntry.COLUMN_SUPPLIER_EMAIL);
 
             //Check that a product name has been entered
             if (productName == null) {
@@ -211,7 +213,7 @@ public class ProductProvider extends ContentProvider {
             //Get writable version of database to insert new row
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
 
-            long newRowId = db.insert(ProductEntry.TABLE_NAME, null, values[i]);
+            long newRowId = db.insert(ProductEntry.TABLE_NAME, null, value);
 
             if (newRowId < 0) {
                 Log.e(LOG_TAG, "Failed to insert row for " + uri);
@@ -228,7 +230,7 @@ public class ProductProvider extends ContentProvider {
     }
 
     @Override
-    public int delete(Uri uri, String selection, String[] selectionArgs) {
+    public int delete(@NonNull Uri uri, String selection, String[] selectionArgs) {
         final int match = sUriMatcher.match(uri);
         switch (match) {
             case PRODUCT:
@@ -261,7 +263,86 @@ public class ProductProvider extends ContentProvider {
     }
 
     @Override
-    public int update(Uri uri, ContentValues contentValues, String s, String[] strings) {
-        return 0;
+    public int update(@NonNull Uri uri, ContentValues contentValues, String selection, String[] selectionArgs) {
+        final int match = sUriMatcher.match(uri);
+        switch (match) {
+            //Update a multiple products
+            case PRODUCT:
+                return updateProduct(uri, contentValues, selection, selectionArgs);
+            //Update a single product
+            case PRODUCT_ID:
+                selection = ProductEntry._ID + "=?";
+                selectionArgs = new String[]{String.valueOf(ContentUris.parseId(uri))};
+                return updateProduct(uri, contentValues, selection, selectionArgs);
+            default:
+                throw new IllegalArgumentException("Update is not supported for " + uri);
+        }
+    }
+
+    private int updateProduct(Uri uri, ContentValues contentValues, String selection, String[] selectionArgs) {
+
+        //If content values has the name key inside then do a sanity check
+        if (contentValues.containsKey(ProductEntry.COLUMN_NAME)) {
+            String productName = contentValues.getAsString(ProductEntry.COLUMN_NAME);
+
+            //Check that a product name has been entered
+            if (productName == null) {
+                throw new IllegalArgumentException("Product requires a name");
+            }
+        }
+
+        //If content values has the image key inside then do a sanity check
+        if (contentValues.containsKey(ProductEntry.COLUMN_IMAGE)) {
+            String productImage = contentValues.getAsString(ProductEntry.COLUMN_IMAGE);
+
+            //Check that a product image has been selected
+            if (productImage == null) {
+                throw new IllegalArgumentException("Product requires a image");
+            }
+        }
+
+        //if content values has the price key then do a sanity check
+        if (contentValues.containsKey(ProductEntry.COLUMN_PRICE)) {
+            double productPrice = contentValues.getAsDouble(ProductEntry.COLUMN_PRICE);
+
+            //Check that a product price has been entered
+            if (productPrice <= 0.00) {
+                throw new IllegalArgumentException("Product requires a price");
+            }
+        }
+
+        //if content values has the suppler key then do a sanity check
+        if (contentValues.containsKey(ProductEntry.COLUMN_SUPPLIER)) {
+            String supplierName = contentValues.getAsString(ProductEntry.COLUMN_SUPPLIER);
+
+            //Check that a supplier name has been entered
+            if (supplierName == null) {
+                throw new IllegalArgumentException("Supplier name required");
+            }
+        }
+
+        //if content values has the supplier_email key then do a sanity check
+        if (contentValues.containsKey(ProductEntry.COLUMN_SUPPLIER_EMAIL)) {
+            String supplierEmail = contentValues.getAsString(ProductEntry.COLUMN_SUPPLIER_EMAIL);
+
+            //Check that a supplier email has been entered
+            if (supplierEmail == null) {
+                throw new IllegalArgumentException("Supplier email required");
+            }
+        }
+
+        //Get writable version of the database
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+
+        //Update the row / rows
+        int rowsUpdated = db.update(ProductEntry.TABLE_NAME, contentValues, selection, selectionArgs);
+
+        if (rowsUpdated != 0) {
+            //Notify all listeners that the data has changed
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
+
+        //Return the number of rows that were updated
+        return rowsUpdated;
     }
 }

@@ -1,9 +1,11 @@
 package com.example.android.inventoryapp;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.LoaderManager;
 import android.content.ContentValues;
 import android.content.CursorLoader;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
@@ -11,14 +13,16 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -43,16 +47,22 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
     private EditText mOrderQuantity;
     private ImageView mProductImage;
     private TextView mQuantityAvailable;
-    private ImageButton mAddQuantity;
-    private ImageButton mRemoveQuantity;
     private EditText mSupplier;
     private EditText mSupplierEmail;
     private EditText mPrice;
+    private boolean mProductChanged = false;
     //editUri determines if EditorActivity will be add mode or edit mode
     private Uri editUri = null;
 
     //Contains Uri for image selected by user
     private Uri imageUri = null;
+    private View.OnTouchListener mTouchListener = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View view, MotionEvent motionEvent) {
+            mProductChanged = true;
+            return false;
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,12 +73,39 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         //get associated URI
         editUri = getIntent().getData();
 
+        //Find all user input views
+        mProductImage = (ImageView) findViewById(R.id.product_image);
+        mProductName = (EditText) findViewById(R.id.product_name_edit_text);
+        mQuantityAvailable = (TextView) findViewById(R.id.available);
+        ImageButton mRemoveQuantity = (ImageButton) findViewById(R.id.remove);
+        ImageButton mAddQuantity = (ImageButton) findViewById(R.id.add);
+        mSupplier = (EditText) findViewById(R.id.supplier);
+        mPrice = (EditText) findViewById(R.id.price_edit_text);
+        mProductImage = (ImageView) findViewById(R.id.product_image);
+        mOrderQuantity = (EditText) findViewById(R.id.quantity_edit_text);
+        mDescription = (EditText) findViewById(R.id.description_edit_text);
+        mSupplierEmail = (EditText) findViewById(R.id.supplier_email);
+        TextView mQuantityTitle = (TextView) findViewById(R.id.quantity_text_view);
+        Button mOrder = (Button) findViewById(R.id.order);
+
+        //Setup on touch listeners
+        mProductName.setOnTouchListener(mTouchListener);
+        mDescription.setOnTouchListener(mTouchListener);
+        mPrice.setOnTouchListener(mTouchListener);
+        mSupplier.setOnTouchListener(mTouchListener);
+        mProductImage.setOnTouchListener(mTouchListener);
+        mSupplierEmail.setOnTouchListener(mTouchListener);
+        mAddQuantity.setOnTouchListener(mTouchListener);
+        mRemoveQuantity.setOnTouchListener(mTouchListener);
+        mOrderQuantity.setOnTouchListener(mTouchListener);
+
         //Set title of EditorActivity on which situation we have
         //If the EditoryActivity was opened using the ListView, then we will
         //have a uri for a product. Therefore change title to "Edit Product"
         //Otherwise change title to say "Add Product"
         if (editUri == null) {
             setTitle(R.string.add_mode);
+            mQuantityTitle.setText(R.string.quantity);
 
             //Invalidate the options menu, so the "Delete" menu option can be hidden.
             invalidateOptionsMenu();
@@ -78,19 +115,6 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             //Initialize Loader
             getLoaderManager().initLoader(CURSOR_LOADER_ID, null, this);
         }
-
-        //Find all user input views
-        mProductImage = (ImageView) findViewById(R.id.product_image);
-        mProductName = (EditText) findViewById(R.id.product_name_edit_text);
-        mQuantityAvailable = (TextView) findViewById(R.id.available);
-        mRemoveQuantity = (ImageButton) findViewById(R.id.remove);
-        mAddQuantity = (ImageButton) findViewById(R.id.add);
-        mSupplier = (EditText) findViewById(R.id.supplier);
-        mPrice = (EditText) findViewById(R.id.price_edit_text);
-        mProductImage = (ImageView) findViewById(R.id.product_image);
-        mOrderQuantity = (EditText) findViewById(R.id.quantity_edit_text);
-        mDescription = (EditText) findViewById(R.id.description_edit_text);
-        mSupplierEmail = (EditText) findViewById(R.id.supplier_email);
 
         //On click listener for mProductImage ImageView
         mProductImage.setOnClickListener(new View.OnClickListener() {
@@ -175,29 +199,135 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             }
         });
 
+        mOrder.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent emailIntent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto",
+                        mSupplierEmail.getText().toString(), null));
+                emailIntent.putExtra(Intent.EXTRA_SUBJECT, "Product Order : " + mProductName.getText().toString());
+                emailIntent.putExtra(Intent.EXTRA_TEXT, "We would like to place an order for "
+                        + mOrderQuantity.getText().toString() + " " + mProductName.getText().toString()
+                        + "\n\nThank You");
+
+                startActivity(Intent.createChooser(emailIntent, "Send Email"));
+            }
+        });
+
+    }
+
+    @Override
+    public void onBackPressed() {
+        //If product has not changed, continue with handling back button press
+        if (!mProductChanged) {
+            super.onBackPressed();
+            return;
+        }
+
+        //Otherwise warn user if there are unsaved changes
+        DialogInterface.OnClickListener discardButtonClickListener =
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        //user clicked "Discard" button, close the current activity
+                        finish();
+                    }
+                };
+
+        //Show dialog that there are unsaved changes
+        showUnsavedChangesDialog(discardButtonClickListener);
+    }
+
+    private void showUnsavedChangesDialog(
+            DialogInterface.OnClickListener discardButtonClickListener) {
+        // Create an AlertDialog.Builder and set the message, and click listeners
+        // for the positive and negative buttons on the dialog.
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(R.string.unsaved_changes_dialog_msg);
+        builder.setPositiveButton(R.string.discard, discardButtonClickListener);
+        builder.setNegativeButton(R.string.keep_editing, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                // User clicked the "Keep editing" button, so dismiss the dialog
+                // and continue editing the pet.
+                if (dialog != null) {
+                    dialog.dismiss();
+                }
+            }
+        });
+
+        // Create and show the AlertDialog
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         //Inflate the menu options from the res/menu/menu_editor.xml file
         //This adds menu items to the app bar
-        getMenuInflater().inflate(R.menu.menu_editor,menu);
+        getMenuInflater().inflate(R.menu.menu_editor, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         //User clicked on a  menu option in the app bar overflow menu
-        switch (item.getItemId()){
+        switch (item.getItemId()) {
             //Respond to various menu options
             case R.id.action_save:
                 saveProduct();
                 return true;
             case R.id.action_delete:
-                deleteProduct();
+                //Show delete dialog
+                showDeleteConfirmationDialog();
+                return true;
+            case android.R.id.home:
+                //if product has changed, continue with navigating up to parent activity
+                if (!mProductChanged) {
+                    NavUtils.navigateUpFromSameTask(EditorActivity.this);
+                    return true;
+                }
+
+                //Otherwise there are unsaved changes, warn the user
+                //Ask if they should be discarded
+                DialogInterface.OnClickListener discardButtonClickListener =
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                //User clicked discard option, navigate to parent activity
+                                NavUtils.navigateUpFromSameTask(EditorActivity.this);
+                            }
+                        };
+
+                // Show a dialog that notifies the user they have unsaved changes
+                showUnsavedChangesDialog(discardButtonClickListener);
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void showDeleteConfirmationDialog() {
+        // Create an AlertDialog.Builder and set the message, and click listeners
+        // for the postivie and negative buttons on the dialog.
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(R.string.delete_dialog_msg);
+        builder.setPositiveButton(R.string.delete, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                // User clicked the "Delete" button, so delete the pet.
+                deleteProduct();
+            }
+        });
+        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                // User clicked the "Cancel" button, so dismiss the dialog
+                // and continue editing the pet.
+                if (dialog != null) {
+                    dialog.dismiss();
+                }
+            }
+        });
+
+        // Create and show the AlertDialog
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
     }
 
     private void deleteProduct() {
@@ -210,9 +340,9 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         mProductImage.setImageBitmap(null);
 
         if (mRowsDeleted > 0) {
-            Toast.makeText(this, "Product deleted", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.product_deleted_single, Toast.LENGTH_SHORT).show();
         } else {
-            Toast.makeText(this, "Error deleting Product", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.error_product_deleted_single, Toast.LENGTH_SHORT).show();
         }
 
         //Reset the Loader to stop cursor from trying to refresh list
@@ -226,7 +356,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
     //Get user input from editor and save product into the database
     private void saveProduct() {
         Uri mNewUri;
-        String productImage;
+        String productImage = null;
         String productName;
         String supplierName;
         String supplierEmail;
@@ -299,22 +429,44 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         values.put(ProductEntry.COLUMN_DESCRIPTION, productDescription);
 
         if (editUri == null) {
+            //Create a new map of values, where column names are the keys
+            values.put(ProductEntry.COLUMN_QUANTITY, orderQuantity);
+            
             //add mode
             mNewUri = getContentResolver().insert(ProductEntry.CONTENT_URI, values);
 
             if (mNewUri == null) {
                 //Error inserting data
                 Toast.makeText(this, R.string.insert_error, Toast.LENGTH_SHORT).show();
+                finish();
             } else {
                 Toast.makeText(this, R.string.insert_successful, Toast.LENGTH_SHORT).show();
                 finish();
             }
         } else {
             //edit mode
+            String prevQuantity = mQuantityAvailable.getText().toString();
+            String addQuantity = mOrderQuantity.getText().toString();
+
+            //Add previous quantity with the quantity ordered to get the new quantity value
+            int newQuantity = Integer.parseInt(prevQuantity) + Integer.parseInt(addQuantity);
+
+            values.put(ProductEntry.COLUMN_QUANTITY, newQuantity);
+
+            //Updating existing info in the database
+            int rowsUpdated = getContentResolver().update(editUri, values, null, null);
+
+            if (rowsUpdated != 0) {
+                //Successfully updated product
+                Toast.makeText(this, R.string.product_updated, Toast.LENGTH_SHORT).show();
+                finish();
+            } else {
+                Toast.makeText(this, R.string.error_product_update, Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
-    public void pickImage(){
+    public void pickImage() {
 
         Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         i.addCategory(Intent.CATEGORY_OPENABLE);
@@ -326,10 +478,10 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode == PICK_PHOTO_FOR_PRODUCT && resultCode == Activity.RESULT_OK){
-            if(data == null){
+        if (requestCode == PICK_PHOTO_FOR_PRODUCT && resultCode == Activity.RESULT_OK) {
+            if (data == null) {
                 //Error picking image
-                Toast.makeText(this,"Error picking product image",Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Error picking product image", Toast.LENGTH_SHORT).show();
                 return;
             }
             try {
@@ -392,8 +544,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         mSupplierEmail.setText(cursor.getString(cursor.getColumnIndex(ProductEntry.COLUMN_SUPPLIER_EMAIL)));
 
         //Get Image Uri
-        Uri imageUri = Uri.parse(cursor.getString(cursor.getColumnIndex(ProductEntry.COLUMN_IMAGE)));
-        Log.v(LOG_TAG, imageUri.toString());
+        imageUri = Uri.parse(cursor.getString(cursor.getColumnIndex(ProductEntry.COLUMN_IMAGE)));
 
         try {
             InputStream inputStream = EditorActivity.this.getContentResolver().openInputStream(imageUri);

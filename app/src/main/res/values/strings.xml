@@ -7,7 +7,8 @@
     <string name="hint_product_name">Product Name</string>
     <string name="hint_description">Description (optional)</string>
     <string name="order_quantity">Order Quantity</string>
-    <string name="quantity_available">Quantity Available</string>
+    <string name="quantity">Initial Quantity</string>
+    <string name="quantity_available">Current Quantity</string>
     <string name="default_quantity">0</string>
     <string name="hint_price">Price</string>
     <string name="hint_supplier">Supplier</string>
@@ -15,11 +16,24 @@
     <string name="order_product">Order Product</string>
     <string name="sale">Sale</string>
     <string name="current_quantity">Current Quantity : %1s</string>
+    <string name="error_product_sale">Error selling %1s</string>
+    <string name="out_of_stock">Out of stock. Please reorder this product</string>
     <string name="product_price">Price : $ %.2f</string>
     <string name="add_product">Add Product by clicking the + symbol below. : )</string>
     <string name="add_mode">Add Product</string>
-    <string name="edit_mode">Edit Product</string>
-    <string name="insert_error">Error inserting Product</string>
+    <string name="edit_mode">Product Details</string>
+    <string name="insert_error">Error inserting product</string>
     <string name="insert_successful">Product successfully inserted</string>
-
+    <string name="product_deleted_all">Products deleted</string>
+    <string name="error_product_deleted_all">Error deleting products</string>
+    <string name="product_deleted_single">Product deleted</string>
+    <string name="error_product_deleted_single">Error deleting products</string>
+    <string name="product_updated">Product updated</string>
+    <string name="error_product_update">Error updating product</string>
+    <string name="keep_editing">Keep Editing</string>
+    <string name="discard">Discard</string>
+    <string name="unsaved_changes_dialog_msg">Discard your changes and quit editing?</string>
+    <string name="delete_dialog_msg">Delete this product?</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
 </resources>

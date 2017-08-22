@@ -1,18 +1,15 @@
 package com.example.android.inventoryapp;
 
-import android.Manifest;
 import android.app.LoaderManager;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -30,7 +27,6 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
 
     private static final int CURSOR_LOADER_ID = 0;
     private static final String LOG_TAG = CatalogActivity.class.getSimpleName();
-    private static final int PERMISSION_REQUEST_CODE = 1;
     private ProductCursorAdapter mAdapter;
 
     @Override
@@ -59,6 +55,7 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
             @Override
             public void onItemClick(AdapterView<?> adapterView, View itemView, int pos, long id) {
                 Uri editUri = ContentUris.withAppendedId(ProductEntry.CONTENT_URI, id);
+                Log.v(LOG_TAG, Long.toString(id));
 
                 Intent i = new Intent(CatalogActivity.this, EditorActivity.class);
                 i.setData(editUri);
@@ -110,9 +107,9 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
         mRowsDeleted = getContentResolver().delete(ProductEntry.CONTENT_URI, null, null);
 
         if (mRowsDeleted > 0) {
-            Toast.makeText(this, "Products deleted", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.product_deleted_all, Toast.LENGTH_SHORT).show();
         } else {
-            Toast.makeText(this, "Error deleting Products", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.error_product_deleted_all, Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -156,7 +153,7 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
         contentValues.put(ProductEntry.COLUMN_NAME, "Re Zero Shirt");
         contentValues.put(ProductEntry.COLUMN_DESCRIPTION, "Awesome Shirt");
         contentValues.put(ProductEntry.COLUMN_SUPPLIER_EMAIL, "test@email.com");
-        contentValues.put(ProductEntry.COLUMN_PRICE, 4000.00);
+        contentValues.put(ProductEntry.COLUMN_PRICE, 39.99);
         contentValues.put(ProductEntry.COLUMN_SUPPLIER, "arthur shirts");
         contentValues.put(ProductEntry.COLUMN_QUANTITY, 5);
         contentValues.put(ProductEntry.COLUMN_IMAGE,
@@ -167,7 +164,7 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
         contentValues1.put(ProductEntry.COLUMN_NAME, "Rick & Morty Shirt");
         contentValues1.put(ProductEntry.COLUMN_DESCRIPTION, "Shirt from Rick and Morty Tv Show");
         contentValues1.put(ProductEntry.COLUMN_SUPPLIER_EMAIL, "test@email.com");
-        contentValues1.put(ProductEntry.COLUMN_PRICE, 6000.00);
+        contentValues1.put(ProductEntry.COLUMN_PRICE, 60.45);
         contentValues1.put(ProductEntry.COLUMN_SUPPLIER, "arthur shirts");
         contentValues1.put(ProductEntry.COLUMN_QUANTITY, 1);
         contentValues1.put(ProductEntry.COLUMN_IMAGE,
@@ -178,7 +175,7 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
         contentValues2.put(ProductEntry.COLUMN_NAME, "Stein's Gate Shirt");
         contentValues2.put(ProductEntry.COLUMN_DESCRIPTION, "Shirt from the anime Stein's Gate");
         contentValues2.put(ProductEntry.COLUMN_SUPPLIER_EMAIL, "test@email.com");
-        contentValues2.put(ProductEntry.COLUMN_PRICE, 4500.00);
+        contentValues2.put(ProductEntry.COLUMN_PRICE, 45.01);
         contentValues2.put(ProductEntry.COLUMN_SUPPLIER, "arthur shirts");
         contentValues2.put(ProductEntry.COLUMN_QUANTITY, 0);
         contentValues2.put(ProductEntry.COLUMN_IMAGE,
@@ -192,19 +189,5 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
         int mNewRows = getContentResolver().bulkInsert(ProductEntry.CONTENT_URI, values);
 
         Log.v(LOG_TAG, "Products inserted: " + mNewRows);
-    }
-
-    private boolean checkPermission() {
-        //Check if we have permission to access users documents
-        int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.MANAGE_DOCUMENTS);
-        boolean permission = false;
-
-        if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
-            permission = true;
-        } else if (permissionCheck == PackageManager.PERMISSION_DENIED) {
-            permission = false;
-        }
-
-        return permission;
     }
 }
