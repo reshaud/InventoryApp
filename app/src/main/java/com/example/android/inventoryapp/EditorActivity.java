@@ -41,7 +41,6 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
 
     private static final int PICK_PHOTO_FOR_PRODUCT = 0;
     private static final int CURSOR_LOADER_ID = 0;
-    private static final String LOG_TAG = CatalogActivity.class.getSimpleName();
     private EditText mProductName;
     private EditText mDescription;
     private EditText mOrderQuantity;
